@@ -19,10 +19,11 @@ public class CameraTimeLine : MonoBehaviour
     public float angleSmoothing;
     public bool resetOnStart;
     public int currentIndex;
-    public bool tweening;
+    public int tweening;
     // Start is called before the first frame update
     void Start()
     {
+        tweening = 0;
         wayPoints = GetComponent<CameraWayPoints>();
         if (!resetOnStart)
         {
@@ -38,7 +39,7 @@ public class CameraTimeLine : MonoBehaviour
     [ContextMenu("Next Point")]
     public void ChangePosition()
     {
-        if (tweening) return;
+        if (tweening>0) return;
         if(timelineMode==MODE.ONE_WAY)
         {
             if (currentIndex < wayPoints.points.Count-1)
@@ -51,19 +52,30 @@ public class CameraTimeLine : MonoBehaviour
             currentIndex++;
             currentIndex %= wayPoints.points.Count;
         }
-        StartCoroutine(Interpolate(currentIndex));
+        StartCoroutine(InterpolatePosition(currentIndex));
+        StartCoroutine(InterpolateAngle(currentIndex));
     }
 
 
-    IEnumerator Interpolate(int index)
+    IEnumerator InterpolatePosition(int index)
     {
-        tweening = true;
+        tweening++;
         while(Vector3.Distance(transform.position,wayPoints.points[index].position)>0)
         {
             transform.position = Vector3.MoveTowards(transform.position, wayPoints.points[index].position, movementSmoothing* Time.deltaTime);
-            transform.rotation= Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(wayPoints.points[index].angles), angleSmoothing* Time.deltaTime);
             yield return null;
         }
-        tweening = false;
+        tweening--;
     }
+
+	IEnumerator InterpolateAngle(int index)
+	{
+		tweening++;
+		while(transform.rotation != Quaternion.Euler(wayPoints.points[index].angles))
+        {
+			transform.rotation= Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(wayPoints.points[index].angles), angleSmoothing* Time.deltaTime);
+            yield return null;
+        }
+		tweening--;
+	}
 }
